@@ -2,11 +2,24 @@ body{
     justify-content: center;
     text-align: center;
     height: 100vh;
-}
+    background: #abb8ae;
+    font-family: 'Franklin Gothic Medium';
+  }
+  
 table, th, td {
   width: 80%;
   border: 1px solid black;
   padding: 10px;
   text-align: center;
   border-collapse: collapse;
+
+}
+
+table{
+  margin :0 auto;
+}
+h1{
+  background: pink;
+  margin-bottom: 30px;
+ margin-top: 0%;
 }
