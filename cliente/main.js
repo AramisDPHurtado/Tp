@@ -1,13 +1,15 @@
-const url = 'localhost:7000/api/cursos';
+const url = 'http://localhost:7000/api/cursos';
+
 cargarLista()
+
 function cargarLista(){
 
     fetch(url)
     .then(res => res.json())
     .then(data =>{
-    let body = document.querySelector("tbody");
+    let tbody = document.querySelector("tbody");
     tbody.innerHTML= '';
-     for (let student of data) {
+     for (let alumno of data) {
     let tr = document.createElement('tr');
     let aid = document.createElement('td');
     let nombre = document.createElement('td');
@@ -64,4 +66,5 @@ function cargarMaterias(e) {
         }
     })
 }
+
 
