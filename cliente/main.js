@@ -19,11 +19,12 @@ function cargarLista(){
     nombre.textContent = nombres;
     apellido.textContent = apellidos;
     tr.append(aid, nombre , apellido);
+    const btns = ['P','A','T','AP','RA'];
     let td = document.createElement('td');
     for(let text of btns) {
         let button = document.createElement('button');
         button.textContent = text;
-        button.onclick =handleClick;
+        button.onclick = handleClick;
         td.append(button);
     }
     tr.append(td);
@@ -43,6 +44,7 @@ function cargarCursos() {
             const option = document.createElement('option');
             const {anio,division,esp} = curso;
             option.value = curso.id;
+            option.textContent = anio + esp + division;
             select.append(option); 
         }
     })
@@ -67,4 +69,24 @@ function cargarMaterias(e) {
     })
 }
 
+function handleClick(event) {
+    let row = event.target.parentElement.parentElement;
+    let idAlumno = row.children[0].textContent;
+    let select = document.querySelector('#materias');
+    let idMateria = select.value;
+    let datos = {
+        tipo: event.target.textContent,
+        alumno:idAlumno,
+        materia : idMateria
+    };
+    const options = {
+        method:'POST',
+        body: JSON.stringify(datos),
+        headers :{'Content-Type': 'application/json' }
 
+    };
+    fetch('http://localhost:7000/api/asistencias', options)
+    .then(res => res.json())
+    .then(data => alert(data))
+    .catch(err => alert(err.stack));
+}
