@@ -16,6 +16,17 @@ const conn = mysql.createConnection({
     database: 'alumnos'
 });
 
+conn.connect();
+
+app.get('/api/cursos' , (req, res ) =>{
+
+    conn.query('SELECT * FROM cursos', (err, rs) => {
+        console.log(rs);
+        
+    res.status(200).json(rs);
+      });
+});
+
 app.post('/api/asistencias', (req , res) => {
     const { tipo, alumno, materia } = req.body;
     const data = [tipo, alumno, materia];
@@ -28,4 +39,3 @@ app.post('/api/asistencias', (req , res) => {
 app.listen(PORT, () => {
   console.log('Server andando nomás en el puerto 7000');
 });
-
