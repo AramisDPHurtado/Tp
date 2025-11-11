@@ -18,12 +18,11 @@ const conn = mysql.createConnection({
 
 conn.connect();
 
-app.get('/api/cursos' , (req, res ) =>{
-    const curso = req.params.curso;
-    //conn.query('SELECT * FROM materias WHERE curso= ?',[curso] ,(err, rs) => {
-    conn.query('SELECT * FROM materias',(err, rs) => {
-    res.status(200).json(rs);
-      });
+app.get('/api/cursos/', (req, res ) =>{
+
+    conn.query('SELECT id FROM cursos WHERE anio = ? AND division = ? AND esp = ? ',[] ,(err, rs) => {
+        res.status(200).json(rs);
+    });
 });
 
 app.get('/api/materias',(req,res) => {
@@ -36,9 +35,9 @@ app.get('/api/materias',(req,res) => {
 });
 
 app.post('/api/asistencias', (req , res) => {
-    const { tipo, alumno, materia } = req.body;
-    const data = [tipo, alumno, materia];
-    const q = 'INSERT INTO registros (tipo, alumno, materias) VALUES (?,?,?)'
+    const { asistencia, alumno, materia } = req.body;
+    const data = [asistencia, alumno, materia];
+    const q = 'INSERT INTO registros (asistencia, alumno, materias) VALUES (?,?,?)'
     conn.query( data, (err, rs) => {
         res.status(201).json({msg: 'Alta OK'});
     });
