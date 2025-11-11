@@ -31,3 +31,15 @@ CREATE TABLE IF NOT EXISTS alumnos (
     curso INT,
     FOREIGN KEY (curso) REFERENCES cursos(id)
 );
+CREATE TABLE IF NOT EXISTS asistencias (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    presencia ENUM ('P','A','T','AP','RA'),
+    alumno INT,
+    materia INT,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (alumno) REFERENCES alumnos(id),
+    FOREIGN KEY (materia) REFERENCES materias(id)
+
+)
+
+
