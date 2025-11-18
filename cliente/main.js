@@ -1,16 +1,20 @@
-cargarLista()
+/*
 async function llamarApi(puntoFinal,metodo,body){
     let opciones = {
         method: metodo,
         headers: {"Content-Type":"application/json"}
-    }
-    let res = await fetch("http://localhost:7000/api/"+puntoFinal,opciones);
-    let data = res.json();
-    return data;
-}
-async function cargarLista(){
+        }
+        let res = await fetch("http://localhost:7000/api/"+puntoFinal,opciones);
+        let data = res.json();
+        return data;
+        }
+        */
+    const url = "http://localhost:7000/api/cursos";
+    cargarLista()
+       
+ function cargarLista(){
 
-    let cursos = await llamarApi("cursos","GET");
+    let cursos = url
     let tbody = document.querySelector("tbody");
     tbody.innerHTML= '';
     for (let alumno of cursos) {
@@ -38,8 +42,9 @@ async function cargarLista(){
 }
 
 
- async function cargarCursos() {
-    let cursos = llamarApi("cursos","GET")
+ function cargarCursos() {
+    let cursos = url
+    fetch(cursos)
     .then(res => res.json())
     .then(data => {
         console.log(data);
@@ -64,7 +69,7 @@ function cargarMaterias(e) {
     .then(res => res.json())
     .then(data => {
         const select = document.querySelector ('#materias');
-        select.innerHTML = ' ';
+        select.innerHTML = '';
         for(let materia of data) {
             const option = document.createElement('option');
             option.textContent = materia.nombre;
@@ -90,7 +95,7 @@ function handleClick(event) {
         headers :{'Content-Type': 'application/json' }
 
     };
-    fetch('http://localhost:7000/api/asistencias', options)
+    fetch('http://localhost:7000/api/asistencias')
     .then(res => res.json())
     .then(data => alert(data))
     .catch(err => alert(err.stack));
