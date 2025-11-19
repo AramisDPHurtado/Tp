@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS cursos (
     id INT PRIMARY KEY AUTO_INCREMENT,
     curso INT,
     division INT,
-    esp ENUM('Automotores','Ciclo Basico', 'Computacion'),
+    esp ENUM('Automotor','Ciclo Basico', 'Computacion'),
     aula INT
 );
 
@@ -40,6 +40,6 @@ CREATE TABLE IF NOT EXISTS asistencias (
     FOREIGN KEY (alumno) REFERENCES alumnos(id),
     FOREIGN KEY (materia) REFERENCES materias(id)
 
-)
+);
 
 
