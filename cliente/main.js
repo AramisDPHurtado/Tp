@@ -3,7 +3,7 @@ const api = "http://localhost:7000/api";
 document.querySelector("#cursos").addEventListener("change", cargarMaterias);
 document.querySelector("#cursos").addEventListener("change", cargarAlumnos);
 
-// Cargar cursos al iniciar
+
 cargarCursos();
 
 function cargarCursos(){
@@ -75,3 +75,4 @@ function registrarAsistencia(tipo, alumno){
     .then(res=>res.json())
     .then(msg=> alert(msg.msg));
 }
+
