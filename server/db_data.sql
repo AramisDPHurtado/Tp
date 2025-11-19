@@ -11,7 +11,9 @@ INSERT INTO materias VALUES
 (NULL,2,'Guillermo Di Tieri',0,'Geografia',5),
 (NULL,2,'Jesus nazaret',0,'Matematica',5),
 (NULL,4,'De reyes',0,'Redes',2),
-(NULL,3,'Falto Diaz',1,'Educacion Fisica',3);  
+(NULL,3,'Falto Diaz',1,'Educacion Fisica',3),
+(NULL,4,'De reyes',0,'Redes',1),
+(NULL,4,'Santiago Trini',0,'Proyecto Informatico',1);
 
 INSERT INTO alumnos VALUES
 (NULL,'Luna','Estanga',12345678,2),
@@ -19,5 +21,8 @@ INSERT INTO alumnos VALUES
 (NULL,'Cristian','Roman',12345678,5),
 (NULL,'Aramis','Perez',12345678,2),
 (NULL,'Lucas','Brem',12345678,2);
+
+
+
 
 
