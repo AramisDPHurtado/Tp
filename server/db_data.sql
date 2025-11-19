@@ -31,8 +31,8 @@ INSERT INTO alumnos VALUES
 (NULL,'Valentin','Chavez',12345678,5),
 (NULL,'Mauricio','Macoratti',12345678,5),
 (NULL,'Fabrizio','Jauregui',12345678,3),
-(NULL,'Fausto','Benguria',12345678,3);
-
+(NULL,'Fausto','Benguria',12345678,3),
+(NULL,'Florencia','Gonzalez',12345678,1);
 
 
 
