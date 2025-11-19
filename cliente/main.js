@@ -3,20 +3,19 @@ const api = "http://localhost:7000/api";
 document.querySelector("#cursos").addEventListener("change", cargarMaterias);
 document.querySelector("#cursos").addEventListener("change", cargarAlumnos);
 
-
 cargarCursos();
 
 function cargarCursos(){
     fetch(api + "/cursos")
     .then(res=>res.json())
     .then(data=>{
-        const sel = document.querySelector("#cursos");
-        sel.innerHTML = "";
+        const select = document.querySelector("#cursos");
+        select.innerHTML = "";
         data.forEach(c=>{
-            const op = document.createElement("option");
-            op.value = c.id;
-            op.textContent = `${c.curso}°${c.division} ${c.esp}`;
-            sel.appendChild(op);
+            const option = document.createElement("option");
+            option.value = c.id;
+            option.textContent = `${c.curso}°${c.division} ${c.esp}`;
+            select.appendChild(option);
         });
     });
 }
@@ -26,13 +25,13 @@ function cargarMaterias(){
     fetch(api + "/materias/" + id)
     .then(res=>res.json())
     .then(data=>{
-        const sel = document.querySelector("#materias");
-        sel.innerHTML = "";
+        const select = document.querySelector("#materias");
+        select.innerHTML = "";
         data.forEach(m=>{
-            const op = document.createElement("option");
-            op.value = m.id;
-            op.textContent = m.nombre;
-            sel.appendChild(op);
+            const option = document.createElement("option");
+            option.value = m.id;
+            option.textContent = m.nombre;
+            select.appendChild(option);
         });
     });
 }
@@ -75,4 +74,6 @@ function registrarAsistencia(tipo, alumno){
     .then(res=>res.json())
     .then(msg=> alert(msg.msg));
 }
+
+
 
