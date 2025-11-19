@@ -3,47 +3,55 @@ const cors = require('cors');
 const mysql = require('mysql');
 const morgan = require('morgan');
 
-const PORT = process.env.PORT || 7000;
-
 const app = express();
+const PORT = 7000;
 
 app.use(cors());
+app.use(express.json());
 app.use(morgan('dev'));
 
 const conn = mysql.createConnection({
-    host:'localhost',
+    host: 'localhost',
     user: 'root',
     database: 'alumnos'
 });
 
 conn.connect();
 
-app.get('/api/cursos/', (req, res ) =>{
-    let id = req.params.id;
-    conn.query('SELECT id FROM cursos WHERE curso = ? AND division = ? AND esp = ? ',[id] ,(err, rs) => {
-    //conn.query('SELECT * FROM cursos',[] ,(err, rs) => {
-        res.status(200).json(rs);
+app.get('/api/cursos', (req,res)=>{
+    conn.query("SELECT * FROM cursos", (err,rs)=>{
+        res.json(rs);
     });
 });
 
-app.get('/api/materias',(req,res) => {
-    const materia = req.params.materia;
-    const q ='SELECT a.id, a.nombres, a.apellidos FROM alumnos a JOIN cursos c ON a.curso = c.id JOIN materias m ON m.curso =conn.id WHERE m.id =?'
-    conn.query(q,[materia], (err, rs) => {
-        res.status(200).json(rs);
-      
+app.get('/api/materias/:curso', (req,res)=>{
+    conn.query(
+        "SELECT * FROM materias WHERE curso = ?",
+        [req.params.curso],
+        (err,rs)=> res.json(rs)
+    );
+});
+
+app.get('/api/alumnos/:curso', (req,res)=>{
+    conn.query("SELECT * FROM alumnos WHERE curso = ?",[req.params.curso],
+     (err,rs)=> res.json(rs)
+    );
+});
+
+app.post('/api/asistencias', (req,res)=>{
+    const {tipo, alumno, materia} = req.body;
+    const q = "INSERT INTO asistencias (presencia, alumno, materia) VALUES (?,?,?)";
+    conn.query(q, [tipo, alumno, materia] ,()=>{
+        res.json({msg:"Asistencia guardada"});
     });
 });
 
-app.post('/api/asistencias', (req , res) => {
-    const { asistencia, alumno, materia } = req.body;
-    const data = [asistencia, alumno, materia];
-    const q = 'INSERT INTO asistencias (asistencia, alumno, materias) VALUES (?,?,?)'
-    conn.query( data, (err, rs) => {
-        res.status(201).json({msg: 'Alta OK'});
-    });
+app.get('/api/asistencias/:fecha', (req,res)=>{
+    conn.query(
+        "SELECT * FROM asistencias WHERE DATE(fecha)=?",
+        [req.params.fecha],
+        (err,rs)=> res.json(rs)
+    );
 });
 
-app.listen(PORT, () => {
-  console.log('Server andando nomás en el puerto 7000');
-});
+app.listen(PORT, ()=> console.log("API lista en 7000"));
