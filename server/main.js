@@ -38,6 +38,21 @@ app.get('/api/alumnos/:curso', (req,res)=>{
     );
 });
 
+
+app.post('/api/alumnos', (req,res)=>{
+    const { nombres, apellidos, dni, curso } = req.body;
+
+    const q = "INSERT INTO alumnos (nombres, apellidos, dni, curso) VALUES (?,?,?,?)";
+
+    conn.query(q, [nombres, apellidos, dni, curso], (err, result)=>{
+        if(err){
+            console.log("Error al insertar alumno:", err);
+            return res.status(500).json({msg:"Error al guardar alumno"});
+        }
+        res.json({msg:"Alumno agregado correctamente", id: result.insertId});
+    });
+});
+
 app.post('/api/asistencias', (req,res)=>{
     const {tipo, alumno, materia} = req.body;
     const q = "INSERT INTO asistencias (presencia, alumno, materia) VALUES (?,?,?)";
@@ -53,5 +68,6 @@ app.get('/api/asistencias/:fecha', (req,res)=>{
         (err,rs)=> res.json(rs)
     );
 });
+
 
 app.listen(PORT, ()=> console.log("API lista en 7000"));
