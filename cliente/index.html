@@ -1,49 +1,69 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trabajo practico octubre</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trabajo práctico octubre</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-    <h1>Registro de asistencia:</h2>
-        <select id="cursos"></select>
-        <select id="materias"></select>
-      <table>
-            <thead>
-                <tr>
-                   <th>Nombre</th>
-                   <th>Apellido</th>
-                   <th>DNI</th>
-                   <th>Acciones</th> 
-                </tr>
-            </thead>
-            <tbody>
+  <h1>Registro de asistencia:</h1>
 
-            </tbody>
-        </table>
-<hr>
+  <label for="cursos">Curso:</label>
+  <select id="cursos"></select>
 
-<h2>Asistencias por fecha</h2>
+  <label for="materias">Materia:</label>
+  <select id="materias"></select>
 
-<label>Seleccionar fecha:</label>
-<input type="date" id="fecha">
-<button id="btnFecha">Buscar</button>
-
-<table id="tablaFecha">
+  <table>
     <thead>
-        <tr>
-            <th>Nombre</th>
-            <th>Apellido</th>
-            <th>DNI</th>
-            <th>Asistencia</th>
-        </tr>
+      <tr>
+        <th>Nombre</th>
+        <th>Apellido</th>
+        <th>DNI</th>
+        <th>Acciones</th>
+      </tr>
     </thead>
-    <tbody></tbody>
-</table>
+    <tbody>
+  
+    </tbody>
+  </table>
 
+  <hr />
+
+  <h2>Asistencias por fecha</h2>
+
+  <label for="fecha">Seleccionar fecha:</label>
+  <input type="date" id="fecha" />
+  <button id="btnFecha">Buscar</button>
+
+  <table id="tablaFecha">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Apellido</th>
+        <th>DNI</th>
+        <th>Asistencia</th>
+      </tr>
+    </thead>
+    <tbody>
+   
+    </tbody>
+  </table>
+
+  <hr />
+
+  <h2>Agregar alumno manualmente</h2>
+  <div id="formNuevoAlumno">
+    <input id="nombresNuevo" type="text" placeholder="Nombres" />
+    <input id="apellidosNuevo" type="text" placeholder="Apellidos" />
+    <input id="dniNuevo" type="number" placeholder="DNI" />
+    <label for="cursoNuevo">Curso:</label>
+    <select id="cursoNuevo"></select>
+    <button id="btnAgregarAlumno">Agregar alumno</button>
+  </div>
+
+
+  <script src="main.js"></script>
 </body>
-<script src="main.js"></script>
-
 </html>
