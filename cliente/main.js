@@ -3,26 +3,46 @@ const api = "http://localhost:7000/api";
 document.querySelector("#cursos").addEventListener("change", cargarMaterias);
 document.querySelector("#cursos").addEventListener("change", cargarAlumnos);
 document.querySelector("#btnFecha").addEventListener("click", cargarAsistenciasPorFecha);
+document.addEventListener("DOMContentLoaded", cargarCursos);
 
-cargarCursos();
+document.addEventListener("click", (e) => {
+ 
+});
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.querySelector("#btnAgregarAlumno");
+  if (btn) btn.addEventListener("click", agregarAlumno);
+});
 
 function cargarCursos() {
     fetch(api + "/cursos")
     .then(res => res.json())
     .then(data => {
         const select = document.querySelector("#cursos");
+        const selectNuevo = document.querySelector("#cursoNuevo");
         select.innerHTML = "";
+        if (selectNuevo) selectNuevo.innerHTML = "";
+
         data.forEach(c => {
             const option = document.createElement("option");
             option.value = c.id;
             option.textContent = `${c.curso}°${c.division} ${c.esp}`;
             select.appendChild(option);
+
+            if (selectNuevo) {
+                const option2 = document.createElement("option");
+                option2.value = c.id;
+                option2.textContent = `${c.curso}°${c.division} ${c.esp}`;
+                selectNuevo.appendChild(option2);
+            }
         });
         if (data.length > 0) {
             cargarMaterias();
             cargarAlumnos();
         }
-    });
+    })
+    .catch(err => console.error("Error cargando cursos:", err));
 }
 
 function cargarMaterias() {
@@ -113,5 +133,42 @@ function cargarAsistenciasPorFecha() {
             tr.appendChild(td);
             tbody.appendChild(tr);
         });
+    });
+}
+
+function agregarAlumno(e) {
+    e?.preventDefault?.();
+    const nombres = document.querySelector("#nombresNuevo").value.trim();
+    const apellidos = document.querySelector("#apellidosNuevo").value.trim();
+    const dniStr = document.querySelector("#dniNuevo").value.trim();
+    const curso = document.querySelector("#cursoNuevo").value;
+
+    if (!nombres || !apellidos || !dniStr || !curso) {
+        alert("Completa todos los campos.");
+        return;
+    }
+
+    const dni = parseInt(dniStr, 10);
+
+    fetch(api + "/alumnos", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({nombres, apellidos, dni, curso})
+    })
+    .then(res => res.json())
+    .then(resp => {
+        if (resp && resp.msg) alert(resp.msg);
+        
+        document.querySelector("#nombresNuevo").value = "";
+        document.querySelector("#apellidosNuevo").value = "";
+        document.querySelector("#dniNuevo").value = "";
+       
+        if (curso == document.querySelector("#cursos").value) {
+            cargarAlumnos();
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Ocurrió un error al agregar el alumno.");
     });
 }
