@@ -3,16 +3,10 @@ const api = "http://localhost:7000/api";
 document.querySelector("#cursos").addEventListener("change", cargarMaterias);
 document.querySelector("#cursos").addEventListener("change", cargarAlumnos);
 document.querySelector("#btnFecha").addEventListener("click", cargarAsistenciasPorFecha);
-document.addEventListener("DOMContentLoaded", cargarCursos);
-
-document.addEventListener("click", (e) => {
- 
-});
-
-
 document.addEventListener("DOMContentLoaded", () => {
-  const btn = document.querySelector("#btnAgregarAlumno");
-  if (btn) btn.addEventListener("click", agregarAlumno);
+    cargarCursos();
+    const btn = document.querySelector("#btnAgregarAlumno");
+    if (btn) btn.addEventListener("click", agregarAlumno);
 });
 
 function cargarCursos() {
@@ -66,7 +60,7 @@ function cargarAlumnos() {
     fetch(api + "/alumnos/" + id)
     .then(res => res.json())
     .then(data => {
-        const tbody = document.querySelector("tbody");
+        const tbody = document.querySelector("tbody"); 
         tbody.innerHTML = "";
         data.forEach(a => {
             const tr = document.createElement("tr");
@@ -79,6 +73,7 @@ function cargarAlumnos() {
             ["P","A","T","AP","RA"].forEach(t => {
                 const btn = document.createElement("button");
                 btn.textContent = t;
+                btn.type = "button";
                 btn.onclick = () => registrarAsistencia(t, a.id);
                 td.appendChild(btn);
             });
@@ -96,43 +91,158 @@ function registrarAsistencia(tipo, alumno) {
         body: JSON.stringify({tipo, alumno, materia})
     })
     .then(res => res.json())
-    .then(msg => alert(msg.msg));
+    .then(msg => {
+        alert(msg.msg || "Asistencia guardada");
+       
+        cargarAsistenciasPorFecha();
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Error al guardar la asistencia.");
+    });
 }
+
+
+function formatTimeFromSQL(ts) {
+    if (!ts) return "";
+    let dateObj;
+    if (ts.includes('T')) {
+        dateObj = new Date(ts);
+        if (isNaN(dateObj)) {
+            const tryIso = ts.replace(' ', 'T');
+            dateObj = new Date(tryIso);
+        }
+    } else if (ts.indexOf(' ') !== -1) {
+      
+        const iso = ts.replace(' ', 'T') + '-03:00';
+        dateObj = new Date(iso);
+    } else {
+        dateObj = new Date(ts);
+    }
+    if (isNaN(dateObj)) return ts;
+    try {
+        return dateObj.toLocaleTimeString('es-AR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+            timeZone: 'America/Argentina/Buenos_Aires'
+        });
+    } catch (e) {
+        return dateObj.toLocaleTimeString('es-AR', { hour12: false });
+    }
+}
+
 
 function cargarAsistenciasPorFecha() {
     const cursoId = document.querySelector("#cursos").value;
     const materiaId = document.querySelector("#materias").value;
-    const fecha = document.querySelector("#fecha").value;
+    const fecha = document.querySelector("#fecha").value; 
 
-    if (!fecha) return;
+    const params = new URLSearchParams();
+    if (fecha) params.set("fecha", fecha);
+    if (materiaId) params.set("materia", materiaId);
+    if (cursoId) params.set("curso", cursoId);
 
-    Promise.all([
-        fetch(api + "/alumnos/" + cursoId).then(res => res.json()),
-        fetch(api + "/asistencias/" + fecha).then(res => res.json())
-    ]).then(([alumnos, asistencias]) => {
+    const url = api + "/asistencias" + (params.toString() ? ("?" + params.toString()) : "");
+
+    fetch(url)
+    .then(res => res.json())
+    .then(asistencias => {
         const tbody = document.querySelector("#tablaFecha tbody");
         tbody.innerHTML = "";
 
-        alumnos.forEach(a => {
+        if (!asistencias || asistencias.length === 0) {
             const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td>${a.nombres}</td>
-                <td>${a.apellidos}</td>
-                <td>${a.dni}</td>
-            `;
+            tr.innerHTML = `<td colspan="6">No hay registros.</td>`;
+            tbody.appendChild(tr);
+            return;
+        }
 
-            const td = document.createElement("td");
-            const asistencia = asistencias.find(x => x.alumno === a.id && x.materia == materiaId);
+        asistencias.forEach(row => {
+            const tr = document.createElement("tr");
 
-            if (asistencia) {
-                td.textContent = asistencia.presencia;
-            } else {
-                td.textContent = "—";
-            }
+            const tdNombre = document.createElement("td");
+            tdNombre.textContent = row.nombres || "";
+            const tdApellido = document.createElement("td");
+            tdApellido.textContent = row.apellidos || "";
+            const tdDni = document.createElement("td");
+            tdDni.textContent = row.dni || "";
 
-            tr.appendChild(td);
+            const tdPres = document.createElement("td");
+            tdPres.textContent = row.presencia || "";
+
+            const tdHora = document.createElement("td");
+            tdHora.textContent = formatTimeFromSQL(row.fecha);
+
+            const tdAcc = document.createElement("td");
+            const btnEditar = document.createElement("button");
+            btnEditar.type = "button";
+            btnEditar.textContent = "Editar";
+            btnEditar.addEventListener("click", () => editarAsistencia(row.id, row.presencia));
+
+            const btnEliminar = document.createElement("button");
+            btnEliminar.type = "button";
+            btnEliminar.textContent = "Eliminar";
+            btnEliminar.addEventListener("click", () => eliminarAsistencia(row.id));
+
+            tdAcc.appendChild(btnEditar);
+            tdAcc.appendChild(document.createTextNode(" "));
+            tdAcc.appendChild(btnEliminar);
+
+            tr.appendChild(tdNombre);
+            tr.appendChild(tdApellido);
+            tr.appendChild(tdDni);
+            tr.appendChild(tdPres);
+            tr.appendChild(tdHora);
+            tr.appendChild(tdAcc);
+
             tbody.appendChild(tr);
         });
+    })
+    .catch(err => {
+        console.error("Error cargando asistencias:", err);
+        alert("Ocurrió un error al cargar las asistencias.");
+    });
+}
+
+function eliminarAsistencia(id) {
+    if (!confirm("¿Seguro querés eliminar este registro de asistencia?")) return;
+    fetch(api + "/asistencias/" + id, { method: "DELETE" })
+    .then(res => res.json())
+    .then(resp => {
+        alert(resp.msg || "Registro eliminado");
+        cargarAsistenciasPorFecha();
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Ocurrió un error al eliminar.");
+    });
+}
+
+function editarAsistencia(id, actual) {
+    const permitido = ["P","A","T","AP","RA"];
+    const nuevo = prompt(`Valor actual: ${actual}\nIngrese nueva presencia (${permitido.join(", ")}):`, actual);
+    if (nuevo === null) return;
+    const val = nuevo.trim().toUpperCase();
+    if (!permitido.includes(val)) {
+        alert("Valor inválido. Debe ser uno de: " + permitido.join(", "));
+        return;
+    }
+
+    fetch(api + "/asistencias/" + id, {
+        method: "PUT",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ presencia: val })
+    })
+    .then(res => res.json())
+    .then(resp => {
+        alert(resp.msg || "Registro actualizado");
+        cargarAsistenciasPorFecha();
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Ocurrió un error al editar.");
     });
 }
 
@@ -158,11 +268,9 @@ function agregarAlumno(e) {
     .then(res => res.json())
     .then(resp => {
         if (resp && resp.msg) alert(resp.msg);
-        
         document.querySelector("#nombresNuevo").value = "";
         document.querySelector("#apellidosNuevo").value = "";
         document.querySelector("#dniNuevo").value = "";
-       
         if (curso == document.querySelector("#cursos").value) {
             cargarAlumnos();
         }
