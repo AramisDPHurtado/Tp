@@ -1,13 +1,16 @@
 const api = "http://localhost:7000/api";
 
-document.querySelector("#cursos").addEventListener("change", cargarMaterias);
-document.querySelector("#cursos").addEventListener("change", cargarAlumnos);
-document.querySelector("#btnFecha").addEventListener("click", cargarAsistenciasPorFecha);
 document.addEventListener("DOMContentLoaded", () => {
     cargarCursos();
     const btn = document.querySelector("#btnAgregarAlumno");
     if (btn) btn.addEventListener("click", agregarAlumno);
 });
+
+document.querySelector("#cursos")?.addEventListener("change", () => {
+    cargarMaterias();
+    cargarAlumnos();
+});
+document.querySelector("#btnFecha")?.addEventListener("click", cargarAsistenciasPorFecha);
 
 function cargarCursos() {
     fetch(api + "/cursos")
@@ -15,6 +18,7 @@ function cargarCursos() {
     .then(data => {
         const select = document.querySelector("#cursos");
         const selectNuevo = document.querySelector("#cursoNuevo");
+        if (!select) return;
         select.innerHTML = "";
         if (selectNuevo) selectNuevo.innerHTML = "";
 
@@ -22,13 +26,13 @@ function cargarCursos() {
             const option = document.createElement("option");
             option.value = c.id;
             option.textContent = `${c.curso}°${c.division} ${c.esp}`;
-            select.appendChild(option);
+            select.append(option);
 
             if (selectNuevo) {
                 const option2 = document.createElement("option");
                 option2.value = c.id;
                 option2.textContent = `${c.curso}°${c.division} ${c.esp}`;
-                selectNuevo.appendChild(option2);
+                selectNuevo.append(option2);
             }
         });
         if (data.length > 0) {
@@ -40,80 +44,38 @@ function cargarCursos() {
 }
 
 function cargarMaterias() {
-    let id = document.querySelector("#cursos").value;
+    const selectCursos = document.querySelector("#cursos");
+    if (!selectCursos) return;
+    const id = selectCursos.value;
     fetch(api + "/materias/" + id)
     .then(res => res.json())
     .then(data => {
         const select = document.querySelector("#materias");
+        if (!select) return;
         select.innerHTML = "";
         data.forEach(m => {
             const option = document.createElement("option");
             option.value = m.id;
             option.textContent = m.nombre;
-            select.appendChild(option);
+            select.append(option);
         });
-    });
-}
-
-function cargarAlumnos() {
-    let id = document.querySelector("#cursos").value;
-    fetch(api + "/alumnos/" + id)
-    .then(res => res.json())
-    .then(data => {
-        const tbody = document.querySelector("tbody"); 
-        tbody.innerHTML = "";
-        data.forEach(a => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td>${a.nombres}</td>
-                <td>${a.apellidos}</td>
-                <td>${a.dni}</td>
-            `;
-            const td = document.createElement("td");
-            ["P","A","T","AP","RA"].forEach(t => {
-                const btn = document.createElement("button");
-                btn.textContent = t;
-                btn.type = "button";
-                btn.onclick = () => registrarAsistencia(t, a.id);
-                td.appendChild(btn);
-            });
-            tr.appendChild(td);
-            tbody.appendChild(tr);
-        });
-    });
-}
-
-function registrarAsistencia(tipo, alumno) {
-    const materia = document.querySelector("#materias").value;
-    fetch(api + "/asistencias", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({tipo, alumno, materia})
     })
-    .then(res => res.json())
-    .then(msg => {
-        alert(msg.msg || "Asistencia guardada");
-       
-        cargarAsistenciasPorFecha();
-    })
-    .catch(err => {
-        console.error(err);
-        alert("Error al guardar la asistencia.");
-    });
+    .catch(err => console.error("Error cargando materias:", err));
 }
-
 
 function formatTimeFromSQL(ts) {
     if (!ts) return "";
     let dateObj;
-    if (ts.includes('T')) {
+    if (typeof ts !== "string") {
+        
+        dateObj = new Date(ts);
+    } else if (ts.includes('T')) {
         dateObj = new Date(ts);
         if (isNaN(dateObj)) {
             const tryIso = ts.replace(' ', 'T');
             dateObj = new Date(tryIso);
         }
     } else if (ts.indexOf(' ') !== -1) {
-      
         const iso = ts.replace(' ', 'T') + '-03:00';
         dateObj = new Date(iso);
     } else {
@@ -133,11 +95,130 @@ function formatTimeFromSQL(ts) {
     }
 }
 
+async function fetchAsistenciasMap(fecha, materiaId, cursoId) {
+    let url = api + "/asistencias";
+    let params = [];
+
+    if (fecha) params.push("fecha=" + fecha);
+    if (materiaId) params.push("materia=" + materiaId);
+    if (cursoId) params.push("curso=" + cursoId);
+
+    if (params.length > 0) url += "?" + params.join("&");
+
+    try {
+        const res = await fetch(url);
+        if (!res.ok) return new Map();
+
+        const rows = await res.json();
+        const mapa = new Map();
+
+        for (let i = 0; i < rows.length; i++) {
+            const r = rows[i];
+            mapa.set(r.alumno_id, {
+                presencia: r.presencia,
+                ingreso: r.ingreso,
+                egreso: r.egreso
+            });
+        }
+
+        return mapa;
+
+    } catch (err) {
+        console.error("Error fetchAsistenciasMap:", err);
+        return new Map();
+    }
+}
+
+async function cargarAlumnos() {
+    let id = document.querySelector("#cursos").value;
+    if (!id) return;
+
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth()+1).padStart(2,'0');
+    const dd = String(hoy.getDate()).padStart(2,'0');
+    const hoyStr = `${yyyy}-${mm}-${dd}`;
+
+    const materiaId = document.querySelector("#materias")?.value;
+
+    const asistMap = await fetchAsistenciasMap(hoyStr, materiaId, id);
+
+    fetch(api + "/alumnos/" + id)
+    .then(res => res.json())
+    .then(data => {
+        const tbody = document.querySelector("tbody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+        data.forEach(a => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${a.nombres}</td>
+                <td>${a.apellidos}</td>
+                <td>${a.dni}</td>
+            `;
+            const td = document.createElement("td");
+
+            const regHoy = asistMap.get(a.id);
+
+            const permitirRAOnly = regHoy && (regHoy.presencia === 'P' || regHoy.presencia === 'T') && !regHoy.egreso;
+            const yaCerrado = regHoy && (regHoy.egreso || regHoy.presencia === 'RA' || regHoy.presencia === 'A');
+
+            ["P","A","T","AP","RA"].forEach(t => {
+                const btn = document.createElement("button");
+                btn.textContent = t;
+                btn.type = "button";
+                if (!regHoy) {
+                    btn.disabled = false;
+                } else if (permitirRAOnly) {
+                    btn.disabled = (t !== 'RA');
+                } else if (yaCerrado) {
+                    btn.disabled = true;
+                } else {
+                    btn.disabled = false;
+                }
+
+                btn.onclick = () => registrarAsistencia(t, a.id);
+                td.append(btn);
+            });
+
+            tr.append(td);
+            tbody.append(tr);
+        });
+    })
+    .catch(err => {
+        console.error("Error cargando alumnos:", err);
+    });
+}
+
+function registrarAsistencia(tipo, alumno) {
+    const materia = document.querySelector("#materias").value;
+    fetch(api + "/asistencias", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({tipo, alumno, materia})
+    })
+    .then(async res => {
+        const data = await res.json().catch(()=>({}));
+        if (!res.ok) {
+            alert(data.msg || "No se pudo guardar la asistencia.");
+            cargarAlumnos();
+            cargarAsistenciasPorFecha();
+            return;
+        }
+        alert(data.msg || "Asistencia guardada");
+        cargarAlumnos();
+        cargarAsistenciasPorFecha();
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Error al guardar la asistencia.");
+    });
+}
 
 function cargarAsistenciasPorFecha() {
     const cursoId = document.querySelector("#cursos").value;
     const materiaId = document.querySelector("#materias").value;
-    const fecha = document.querySelector("#fecha").value; 
+    const fecha = document.querySelector("#fecha").value;
 
     const params = new URLSearchParams();
     if (fecha) params.set("fecha", fecha);
@@ -145,17 +226,17 @@ function cargarAsistenciasPorFecha() {
     if (cursoId) params.set("curso", cursoId);
 
     const url = api + "/asistencias" + (params.toString() ? ("?" + params.toString()) : "");
-
     fetch(url)
     .then(res => res.json())
     .then(asistencias => {
         const tbody = document.querySelector("#tablaFecha tbody");
+        if (!tbody) return;
         tbody.innerHTML = "";
 
         if (!asistencias || asistencias.length === 0) {
             const tr = document.createElement("tr");
-            tr.innerHTML = `<td colspan="6">No hay registros.</td>`;
-            tbody.appendChild(tr);
+            tr.innerHTML = `<td colspan="7">No hay registros.</td>`;
+            tbody.append(tr);
             return;
         }
 
@@ -172,8 +253,12 @@ function cargarAsistenciasPorFecha() {
             const tdPres = document.createElement("td");
             tdPres.textContent = row.presencia || "";
 
-            const tdHora = document.createElement("td");
-            tdHora.textContent = formatTimeFromSQL(row.fecha);
+            const tdIngres = document.createElement("td");
+
+            tdIngres.textContent = formatTimeFromSQL(row.ingreso || row.fecha);
+
+            const tdEgres = document.createElement("td");
+            tdEgres.textContent = formatTimeFromSQL(row.egreso);
 
             const tdAcc = document.createElement("td");
             const btnEditar = document.createElement("button");
@@ -186,18 +271,11 @@ function cargarAsistenciasPorFecha() {
             btnEliminar.textContent = "Eliminar";
             btnEliminar.addEventListener("click", () => eliminarAsistencia(row.id));
 
-            tdAcc.appendChild(btnEditar);
-            tdAcc.appendChild(document.createTextNode(" "));
-            tdAcc.appendChild(btnEliminar);
+            tdAcc.append(btnEditar, document.createTextNode(" "), btnEliminar);
 
-            tr.appendChild(tdNombre);
-            tr.appendChild(tdApellido);
-            tr.appendChild(tdDni);
-            tr.appendChild(tdPres);
-            tr.appendChild(tdHora);
-            tr.appendChild(tdAcc);
+            tr.append(tdNombre, tdApellido, tdDni, tdPres, tdIngres, tdEgres, tdAcc);
 
-            tbody.appendChild(tr);
+            tbody.append(tr);
         });
     })
     .catch(err => {
@@ -213,6 +291,7 @@ function eliminarAsistencia(id) {
     .then(resp => {
         alert(resp.msg || "Registro eliminado");
         cargarAsistenciasPorFecha();
+        cargarAlumnos();
     })
     .catch(err => {
         console.error(err);
@@ -239,6 +318,7 @@ function editarAsistencia(id, actual) {
     .then(resp => {
         alert(resp.msg || "Registro actualizado");
         cargarAsistenciasPorFecha();
+        cargarAlumnos();
     })
     .catch(err => {
         console.error(err);
