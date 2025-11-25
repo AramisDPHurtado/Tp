@@ -14,7 +14,7 @@ const conn = mysql.createConnection({
     host: 'localhost',
     user: 'root',
     database: 'alumnos',
-    timezone: '-03:00' 
+    timezone: '-03:00'
 });
 
 conn.connect(err => {
@@ -62,15 +62,75 @@ app.post('/api/alumnos', (req,res)=>{
     });
 });
 
+
+const ALLOWED = ['P','A','T','AP','RA'];
+
 app.post('/api/asistencias', (req,res)=>{
-    const {tipo, alumno, materia} = req.body;
-    const q = "INSERT INTO asistencias (presencia, alumno, materia) VALUES (?,?,?)";
-    conn.query(q, [tipo, alumno, materia], (err, result)=>{
-        if (err) {
-            console.error("Error guardando asistencia:", err);
-            return res.status(500).json({msg: "Error al guardar asistencia"});
+    const { tipo, alumno, materia } = req.body;
+    if (!tipo || !ALLOWED.includes(tipo)) return res.status(400).json({ msg: "Tipo inválido" });
+
+    const today = new Date().toISOString().slice(0,10); 
+
+    if (tipo === 'RA') {
+       
+        const qFind = `SELECT * FROM asistencias WHERE alumno=? AND materia=? AND DATE(fecha)=? AND presencia IN ('P','T') AND (egreso IS NULL OR egreso='') ORDER BY fecha DESC LIMIT 1`;
+        conn.query(qFind, [alumno, materia, today], (err, rows) => {
+            if (err) {
+                console.error("Error buscando asistencia para RA:", err);
+                return res.status(500).json({ msg: "Error al procesar RA" });
+            }
+            if (rows && rows.length > 0) {
+                const id = rows[0].id;
+                const qUpd = `UPDATE asistencias SET egreso = NOW() WHERE id = ?`;
+                conn.query(qUpd, [id], (uErr) => {
+                    if (uErr) {
+                        console.error("Error actualizando egreso:", uErr);
+                        return res.status(500).json({ msg: "Error al actualizar egreso" });
+                    }
+                    return res.json({ msg: "Registro actualizado con egreso (RA)", id });
+                });
+            } else {
+                const qIns = `INSERT INTO asistencias (presencia, alumno, materia, egreso) VALUES (?,?,?,NOW())`;
+                conn.query(qIns, [tipo, alumno, materia], (iErr, result) => {
+                    if (iErr) {
+                        console.error("Error insertando RA:", iErr);
+                        return res.status(500).json({ msg: "Error al guardar RA" });
+                    }
+                    res.json({ msg: "Registro RA guardado", id: result.insertId });
+                });
+            }
+        });
+        return;
+    }
+
+    const qExist = `SELECT * FROM asistencias WHERE alumno=? AND materia=? AND DATE(fecha)=?`;
+    conn.query(qExist, [alumno, materia, today], (eErr, rows) => {
+        if (eErr) {
+            console.error("Error checando duplicados:", eErr);
+            return res.status(500).json({ msg: "Error al verificar registros" });
         }
-        res.json({msg:"Asistencia guardada", id: result.insertId});
+        if (rows && rows.length > 0) {
+
+            return res.status(400).json({ msg: "Ya existe un registro para este alumno en esa materia/fecha. Usa editar si querés cambiarlo." });
+        }
+
+        let qIns, params;
+        if (tipo === 'P' || tipo === 'T') {
+            qIns = `INSERT INTO asistencias (presencia, alumno, materia, ingreso) VALUES (?,?,?,NOW())`;
+            params = [tipo, alumno, materia];
+        } else {
+
+            qIns = `INSERT INTO asistencias (presencia, alumno, materia) VALUES (?,?,?)`;
+            params = [tipo, alumno, materia];
+        }
+
+        conn.query(qIns, params, (iErr, result) => {
+            if (iErr) {
+                console.error("Error insertando asistencia:", iErr);
+                return res.status(500).json({ msg: "Error al guardar asistencia" });
+            }
+            res.json({ msg: "Asistencia guardada", id: result.insertId });
+        });
     });
 });
 
@@ -78,7 +138,7 @@ app.get('/api/asistencias', (req, res) => {
     const { fecha, materia, curso } = req.query;
 
     let sql = `
-        SELECT a.id, a.presencia, a.fecha,
+        SELECT a.id, a.presencia, a.fecha, a.ingreso, a.egreso,
                al.id AS alumno_id, al.nombres, al.apellidos, al.dni, al.curso AS curso_id,
                m.id AS materia_id, m.nombre AS materia_nombre
         FROM asistencias a
@@ -103,7 +163,7 @@ app.get('/api/asistencias', (req, res) => {
 
     if (where.length) sql += " WHERE " + where.join(" AND ");
 
-    sql += " ORDER BY a.fecha DESC, a.id DESC"; 
+    sql += " ORDER BY a.fecha DESC, a.id DESC";
 
     conn.query(sql, params, (err, rows) => {
         if (err) {
@@ -115,10 +175,9 @@ app.get('/api/asistencias', (req, res) => {
 });
 
 app.get('/api/asistencias/:fecha', (req,res)=>{
-
     const fecha = req.params.fecha;
     const sql = `
-        SELECT a.id, a.presencia, a.fecha,
+        SELECT a.id, a.presencia, a.fecha, a.ingreso, a.egreso,
                al.id AS alumno_id, al.nombres, al.apellidos, al.dni, al.curso AS curso_id,
                m.id AS materia_id, m.nombre AS materia_nombre
         FROM asistencias a
@@ -136,24 +195,54 @@ app.get('/api/asistencias/:fecha', (req,res)=>{
     });
 });
 
-const ALLOWED = ['P','A','T','AP','RA'];
-
 app.put('/api/asistencias/:id', (req, res) => {
     const { presencia } = req.body;
     const id = req.params.id;
     if (!presencia || !ALLOWED.includes(presencia)) {
         return res.status(400).json({ msg: "Valor de presencia inválido" });
     }
-    const q = "UPDATE asistencias SET presencia = ? WHERE id = ?";
-    conn.query(q, [presencia, id], (err, result) => {
+
+    conn.query("SELECT * FROM asistencias WHERE id = ?", [id], (err, rows) => {
         if (err) {
-            console.error("Error actualizando asistencia:", err);
-            return res.status(500).json({ msg: "Error al actualizar asistencia" });
+            console.error("Error fetch asistencia:", err);
+            return res.status(500).json({ msg: "Error al procesar" });
         }
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ msg: "Registro no encontrado" });
+        if (!rows || rows.length === 0) return res.status(404).json({ msg: "Registro no encontrado" });
+
+        const rec = rows[0];
+        let updates = [];
+        let params = [];
+
+        updates.push("presencia = ?");
+        params.push(presencia);
+
+        if (presencia === 'P' || presencia === 'T') {
+
+            if (!rec.ingreso) {
+                updates.push("ingreso = NOW()");
+            }
+        } else if (presencia === 'RA') {
+
+            if (!rec.egreso) updates.push("egreso = NOW()");
+        } else if (presencia === 'A' || presencia === 'AP') {
+
+            updates.push("ingreso = NULL");
+            updates.push("egreso = NULL");
         }
-        res.json({ msg: "Asistencia actualizada" });
+
+        const sql = `UPDATE asistencias SET ${updates.join(", ")} WHERE id = ?`;
+        params.push(id);
+
+        conn.query(sql, params, (uErr, result) => {
+            if (uErr) {
+                console.error("Error actualizando asistencia:", uErr);
+                return res.status(500).json({ msg: "Error al actualizar asistencia" });
+            }
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ msg: "Registro no encontrado" });
+            }
+            res.json({ msg: "Asistencia actualizada" });
+        });
     });
 });
 
