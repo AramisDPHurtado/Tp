@@ -1,5 +1,3 @@
-
-
 DROP DATABASE IF EXISTS alumnos;
 
 CREATE DATABASE alumnos;
@@ -38,9 +36,10 @@ CREATE TABLE IF NOT EXISTS asistencias (
     alumno INT,
     materia INT,
     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ingreso DATETIME NULL,
+    egreso DATETIME NULL,
     FOREIGN KEY (alumno) REFERENCES alumnos(id),
     FOREIGN KEY (materia) REFERENCES materias(id)
-
 );
 
 
