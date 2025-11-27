@@ -130,25 +130,28 @@ async function fetchAsistenciasMap(fecha, materiaId, cursoId) {
 }
 
 async function cargarAlumnos() {
-    let id = document.querySelector("#cursos").value;
-    if (!id) return;
+    try {
+        let id = document.querySelector("#cursos").value;
+        if (!id) return;
 
-    const hoy = new Date();
-    const yyyy = hoy.getFullYear();
-    const mm = String(hoy.getMonth()+1).padStart(2,'0');
-    const dd = String(hoy.getDate()).padStart(2,'0');
-    const hoyStr = `${yyyy}-${mm}-${dd}`;
+        const hoy = new Date();
+        const yyyy = hoy.getFullYear();
+        const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+        const dd = String(hoy.getDate()).padStart(2, '0');
+        const hoyStr = `${yyyy}-${mm}-${dd}`;
 
-    const materiaId = document.querySelector("#materias")?.value;
+        const materiaId = document.querySelector("#materias")?.value;
 
-    const asistMap = await fetchAsistenciasMap(hoyStr, materiaId, id);
+        const asistMap = await fetchAsistenciasMap(hoyStr, materiaId, id);
 
-    fetch(api + "/alumnos/" + id)
-    .then(res => res.json())
-    .then(data => {
+        const res = await fetch(api + "/alumnos/" + id);
+        const data = await res.json();
+
         const tbody = document.querySelector("tbody");
         if (!tbody) return;
+
         tbody.innerHTML = "";
+
         data.forEach(a => {
             const tr = document.createElement("tr");
             tr.innerHTML = `
@@ -156,17 +159,22 @@ async function cargarAlumnos() {
                 <td>${a.apellidos}</td>
                 <td>${a.dni}</td>
             `;
+
             const td = document.createElement("td");
 
             const regHoy = asistMap.get(a.id);
 
-            const permitirRAOnly = regHoy && (regHoy.presencia === 'P' || regHoy.presencia === 'T') && !regHoy.egreso;
-            const yaCerrado = regHoy && (regHoy.egreso || regHoy.presencia === 'RA' || regHoy.presencia === 'A');
+            const permitirRAOnly =
+                regHoy && (regHoy.presencia === 'P' || regHoy.presencia === 'T') && !regHoy.egreso;
 
-            ["P","A","T","AP","RA"].forEach(t => {
+            const yaCerrado =
+                regHoy && (regHoy.egreso || regHoy.presencia === 'RA' || regHoy.presencia === 'A');
+
+            ["P", "A", "T", "AP", "RA"].forEach(t => {
                 const btn = document.createElement("button");
                 btn.textContent = t;
                 btn.type = "button";
+
                 if (!regHoy) {
                     btn.disabled = false;
                 } else if (permitirRAOnly) {
@@ -184,11 +192,12 @@ async function cargarAlumnos() {
             tr.append(td);
             tbody.append(tr);
         });
-    })
-    .catch(err => {
+
+    } catch (err) {
         console.error("Error cargando alumnos:", err);
-    });
+    }
 }
+
 
 function registrarAsistencia(tipo, alumno) {
     const materia = document.querySelector("#materias").value;
@@ -220,12 +229,17 @@ function cargarAsistenciasPorFecha() {
     const materiaId = document.querySelector("#materias").value;
     const fecha = document.querySelector("#fecha").value;
 
-    const params = new URLSearchParams();
-    if (fecha) params.set("fecha", fecha);
-    if (materiaId) params.set("materia", materiaId);
-    if (cursoId) params.set("curso", cursoId);
+    let url = api + "/asistencias";
+    let params = [];
 
-    const url = api + "/asistencias" + (params.toString() ? ("?" + params.toString()) : "");
+    if (fecha) params.push("fecha=" + fecha);
+    if (materiaId) params.push("materia=" + materiaId);
+    if (cursoId) params.push("curso=" + cursoId);
+
+    if (params.length > 0) {
+        url += "?" + params.join("&");
+    }
+
     fetch(url)
     .then(res => res.json())
     .then(asistencias => {
@@ -245,8 +259,10 @@ function cargarAsistenciasPorFecha() {
 
             const tdNombre = document.createElement("td");
             tdNombre.textContent = row.nombres || "";
+
             const tdApellido = document.createElement("td");
             tdApellido.textContent = row.apellidos || "";
+
             const tdDni = document.createElement("td");
             tdDni.textContent = row.dni || "";
 
@@ -254,13 +270,13 @@ function cargarAsistenciasPorFecha() {
             tdPres.textContent = row.presencia || "";
 
             const tdIngres = document.createElement("td");
-
             tdIngres.textContent = formatTimeFromSQL(row.ingreso || row.fecha);
 
             const tdEgres = document.createElement("td");
             tdEgres.textContent = formatTimeFromSQL(row.egreso);
 
             const tdAcc = document.createElement("td");
+
             const btnEditar = document.createElement("button");
             btnEditar.type = "button";
             btnEditar.textContent = "Editar";
@@ -274,7 +290,6 @@ function cargarAsistenciasPorFecha() {
             tdAcc.append(btnEditar, document.createTextNode(" "), btnEliminar);
 
             tr.append(tdNombre, tdApellido, tdDni, tdPres, tdIngres, tdEgres, tdAcc);
-
             tbody.append(tr);
         });
     })
@@ -283,6 +298,7 @@ function cargarAsistenciasPorFecha() {
         alert("Ocurrió un error al cargar las asistencias.");
     });
 }
+
 
 function eliminarAsistencia(id) {
     if (!confirm("¿Seguro querés eliminar este registro de asistencia?")) return;
